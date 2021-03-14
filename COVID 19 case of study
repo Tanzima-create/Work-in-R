@@ -1,0 +1,53 @@
+# Data cleaning and organizing 
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("splusTimeDate")
+#install.packages("readr")
+#install.packages("stringr")
+#install.packages("doBy")
+
+#read csv file in R
+covid1=read.csv("/Users/tanz/Desktop/data_covid.csv")
+summary(covid)
+
+#droppping variables
+myvars <- names(covid1) %in% c("UID", "iso2", "iso3","code3","Admin2","Combined_Key")
+covid2=covid1[!myvars]
+
+library(dplyr)
+
+library(tidyr)
+covid_long <- covid2 %>% gather(date,death, -c(FIPS, Province_State, Country_Region, Lat, Long_))
+
+#keeping only data for US
+tapply(covid_long$death, covid_long$Province_State, summary)
+library(splusTimeDate)
+
+summary(covid_long)
+sub("X", "", covid_long$date)
+mytext<-sub("x", "", covid_long$date)
+
+#remove X from date using string
+covid_long$date1 <- substring(covid_long$date, 2)
+
+#dropping date column where X included
+myvars <- names(covid_long) %in% c("date")
+covid5=covid_long[!myvars]
+
+# sorting by province and date
+library(dplyr)
+covid5 <- arrange(covid5, Province_State, date1)
+
+#collapse data by province and date
+
+covid_state <-aggregate(covid5$death, by=list(covid5$Province_State, covid5$date1), 
+                    FUN=sum, na.rm=TRUE)
+
+covid_state <- covid_state %>% rename(State = Group.1, Date = Group.2, Death = x)
+summary(covid_state)
+
+# Daily cases
+covid_daily <- aggregate(covid5$death, by=list(covid5$date1), 
+                        FUN=sum, na.rm=TRUE)
+covid_daily <- covid_daily %>% rename(Date = Group.1, Daily.case = x)
+
